@@ -1,0 +1,10 @@
+language: ruby
+
+rvm:
+  - 2.5.1
+
+gemfile:
+ - Gemfile
+
+script: bundle exec ruby test.rb
+sudo: false
