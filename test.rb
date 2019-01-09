@@ -25,8 +25,9 @@ CONF
   end
 
   pid = fork do
+    puts "start fluentd"
     if verbose
-      system("fluentd -c /tmp/fluent-shutdown-test/fluent.conf -d /tmp/fluent-shutdown-test/pid")
+      system("fluentd -c /tmp/fluent-shutdown-test/fluent.conf -d /tmp/fluent-shutdown-test/pid -o /dev/stdout")
     else
       system("fluentd -c /tmp/fluent-shutdown-test/fluent.conf -d /tmp/fluent-shutdown-test/pid -o /dev/null")
     end
@@ -39,17 +40,20 @@ CONF
 end
 
 def shutdown_fluentd(fork_pid)
+  puts "graceful shutdown fluentd"
   pid = File.open('/tmp/fluent-shutdown-test/pid', 'r').read.chomp
   system "kill #{pid}"
   sleep 5
 end
 
 def post_events(cnt)
-  log = Fluent::Logger::FluentLogger.new(nil, :host => 'localhost', :port => 24224)
+  puts "post #{cnt} events"
+  log = Fluent::Logger::FluentLogger.new(nil, :host => 'localhost', :port => 24224, :buffer_limit => 256*1024*1024)
   cnt.times do |i|
     log.post("test", {"test" => i})
   end
 
+  # flush
   log.close
 end
 
@@ -63,7 +67,7 @@ require 'test/unit/ui/console/testrunner'
 
 class TC_FluentdShutdownTest < Test::Unit::TestCase
   def test_10_events
-    fork_pid = start_fluentd
+    fork_pid = start_fluentd true
 
     # post 10 events
     post_events 10
@@ -77,7 +81,7 @@ class TC_FluentdShutdownTest < Test::Unit::TestCase
   end
 
   def test_100000_events
-    fork_pid = start_fluentd
+    fork_pid = start_fluentd true
 
     # post 100000 events
     post_events 100000
